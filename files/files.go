@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"sync"
 	"github.com/boltdb/bolt"
+	"path"
 
+	"CloudDrive/cloudconn"
 	"CloudDrive/database"
 )
 
@@ -21,10 +23,12 @@ type FileState struct {
 // Export types.
 type CloudFile struct {
 	GoogleId string
+	Name string
+	Parents []string
 }
 
 func NewCloudFile(file *drive.File) CloudFile {
-	return CloudFile{file.Id}
+	return CloudFile{file.Id, file.Name, file.Parents}
 }
 
 func NewCloudFileFromByte(in []byte) CloudFile {
@@ -52,21 +56,45 @@ func (cf *CloudFile) ToBytes() []byte {
 	return b.Bytes()
 }
 
-func AddFilesToDB(fileChan chan CloudFile, db *bolt.DB, wg sync.WaitGroup) {
+func AddFilesToDB(fileChan chan CloudFile, db *bolt.DB, drv *drive.Service, wg sync.WaitGroup) {
 	defer wg.Done()
 
-	// Create map from IDs to paths.
+	// Get id of 'root'.
+	rootId := cloudconn.GetRootId(drv)
 
+	// Create map from IDs to paths.
+	idPathMap := make(map[string]string)
+	idPathMap[rootId] = ""
+	// Create map from ID to children. To be populated when there is no match
+	//  in the previous map and
+	idChildrenMap := make(map[string][]string)
 
 	var count = 0
 
 	for cloudFile := range fileChan {
 		count += 1
+		var parentDir = ""
+		parents := cloudFile.Parents
+
+		// TODO Check if the parent has been assigned a path.
+		// TODO If it does, ensure all dependencies are resolved. (see idChildrenMap)
+		// TODO 	AddElementToBucket when resolving path.
+		if len(cloudFile.Parents) > 0 {
+			parentDir = ""
+		} else if mapParDir, ok := idPathMap[cloudFile.GoogleId]; ok {
+			parentDir = mapParDir
+		}
+
+		idPathMap[cloudFile.GoogleId] = path.Join(parentDir, cloudFile.Name)
+
+		// TODO If not present add it to its parent's id.
+
 		serialised := cloudFile.ToBytes()
 		path := "/hi"
 		bucket := "paths"
-		database.AddElementToBucket(db, []byte(bucket), []byte(path), serialised)
 		fmt.Println(count, "("+cloudFile.GoogleId+")")
+		database.AddElementToBucket(db, []byte(bucket), []byte(path), serialised)
 	}
-	fmt.Println("All messages printed, total received: ", count)
+	// TODO Add all elements to the database
+	//fmt.Println("All messages printed, total received: ", count)
 }

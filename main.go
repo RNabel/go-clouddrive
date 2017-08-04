@@ -3,6 +3,7 @@ package main
 import (
 	"sync"
 	"os"
+	"CloudDrive/cloudconn"
 	"CloudDrive/database"
 	"CloudDrive/files"
 )
@@ -11,7 +12,7 @@ func main() {
 	wg := sync.WaitGroup{}
 
 	// Initialise drive object.
-	drv := getDrive()
+	drv := cloudconn.GetDrive()
 
 	// Initialise database.
 	db, err := database.OpenDB()
@@ -24,7 +25,7 @@ func main() {
 		// Copy all file metadata from GDrive to key value store.
 		fileChan := make(chan files.CloudFile, 1000)
 		wg.Add(1)
-		go getAllFilesFromDrive(drv, fileChan, wg)
+		go cloudconn.GetAllFilesFromDrive(drv, fileChan, wg)
 		wg.Add(1)
 		go files.AddFilesToDB(fileChan, db, wg)
 	}

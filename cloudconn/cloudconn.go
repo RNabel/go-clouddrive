@@ -1,4 +1,4 @@
-package main
+package cloudconn
 
 import (
 	"encoding/json"
@@ -91,7 +91,7 @@ func saveToken(file string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func getDrive() *drive.Service {
+func GetDrive() *drive.Service {
 	ctx := context.Background()
 
 	b, err := ioutil.ReadFile("client_secret.json")
@@ -115,7 +115,7 @@ func getDrive() *drive.Service {
 	return drv
 }
 
-func getAllFilesFromDrive(drv *drive.Service, output chan files.CloudFile, wg sync.WaitGroup) {
+func GetAllFilesFromDrive(drv *drive.Service, output chan files.CloudFile, wg sync.WaitGroup) {
 	defer wg.Done()
 
 	// Initial request.
@@ -146,4 +146,9 @@ func getAllFilesFromDrive(drv *drive.Service, output chan files.CloudFile, wg sy
 	}
 
 	close(output)
+}
+
+func GetRootId(drv *drive.Service) string {
+	f, _ := drv.Files.Get("root").Do()
+	return f.Id
 }
