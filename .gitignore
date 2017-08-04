@@ -1,0 +1,5 @@
+# Client secret.
+client_secret*
+
+# Idea directory.
+.idea/
