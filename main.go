@@ -8,6 +8,7 @@ import (
 	"CloudDrive/files"
 	"CloudDrive/types"
 	"fmt"
+	"CloudDrive/cmd"
 )
 
 func main() {
@@ -25,13 +26,15 @@ func main() {
 
 	if !database.IsDbInitialised(db) {
 		// Copy all file metadata from GDrive to key value store.
-		fileChan := make(chan types.CloudFile, 1000)
+		fileChan := make(chan types.File, 1000)
 		wg.Add(1)
 		go cloudconn.GetAllFilesFromDrive(drv, fileChan, &wg)
 		wg.Add(1)
 		go files.AddFilesToDB(fileChan, db, drv, &wg)
 	}
-	fmt.Println("main: Before the wait.")
 	wg.Wait()
-	fmt.Println("main: After the wait.")
+
+	// Start cmd.
+	go cmd.Start()
+	wg.Wait()
 }

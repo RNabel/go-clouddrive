@@ -12,7 +12,7 @@ import (
 	"CloudDrive/database"
 )
 
-func AddFilesToDB(fileChan chan types.CloudFile, db *bolt.DB, drv *drive.Service, wg *sync.WaitGroup) {
+func AddFilesToDB(fileChan chan types.File, db *bolt.DB, drv *drive.Service, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Get id of 'root'.
@@ -20,7 +20,7 @@ func AddFilesToDB(fileChan chan types.CloudFile, db *bolt.DB, drv *drive.Service
 
 	// Create map from ID to children. To be populated when there is no match
 	//  in the previous map and
-	idChildrenMap := make(map[string][]types.CloudFile)
+	idChildrenMap := make(map[string][]types.File)
 
 	var count = 0
 
@@ -50,15 +50,15 @@ func AddFilesToDB(fileChan chan types.CloudFile, db *bolt.DB, drv *drive.Service
 }
 
 type PathIdPair struct {
-	File types.CloudFile
+	File types.File
 	Path string
 }
 
-func getAllPathPairs(idChildrenMap map[string][]types.CloudFile, rootID string, currentPath string) []PathIdPair {
+func getAllPathPairs(idChildrenMap map[string][]types.File, rootID string, currentPath string) []PathIdPair {
 	var ret = []PathIdPair{}
 
 	for _, child := range idChildrenMap[rootID] {
-		// FIXME child should be CloudFile element.
+		// FIXME child should be File element.
 		newPath := path.Join(currentPath, child.Name)
 		newEntry := PathIdPair{child, newPath}
 		ret = append(ret, newEntry)
@@ -69,4 +69,16 @@ func getAllPathPairs(idChildrenMap map[string][]types.CloudFile, rootID string, 
 	}
 
 	return ret
+}
+
+// Export types.
+type CloudFile struct {
+	GoogleId string
+	Name string
+	Parents []string
+}
+
+
+func NewCloudFile(file *drive.File) *CloudFile {
+	return &CloudFile{file.Id, file.Name, file.Parents}
 }
