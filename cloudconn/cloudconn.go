@@ -16,7 +16,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"sync"
-	"CloudDrive/files"
+	"CloudDrive/types"
 )
 
 // getClient uses a Context and Config to retrieve a Token
@@ -115,23 +115,27 @@ func GetDrive() *drive.Service {
 	return drv
 }
 
-func GetAllFilesFromDrive(drv *drive.Service, output chan files.CloudFile, wg sync.WaitGroup) {
+func GetAllFilesFromDrive(drv *drive.Service, output chan types.CloudFile, wg sync.WaitGroup) {
 	defer wg.Done()
 
 	// Initial request.
 	var r, err = drv.Files.List().
-		Fields("nextPageToken, files(id, name)").
+		Fields("nextPageToken, files(id, name, parents)").
 		PageSize(1000).
 		Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve files: %v", err)
 	}
 
+	var counter = 1
+
 	// Send all files to the passed to the output channel, going through all pages.
 	var cont = true
 	for cont {
+		fmt.Println("Fetched page:", counter, "files in page:", len(r.Files))
+		counter ++
 		for _, f := range r.Files {
-			output <- files.NewCloudFile(f) // TODO change to constructor.
+			output <- types.NewCloudFile(f) // TODO change to constructor.
 		}
 
 		cont = r.NextPageToken != "" || len(r.Files) == 0
@@ -139,7 +143,7 @@ func GetAllFilesFromDrive(drv *drive.Service, output chan files.CloudFile, wg sy
 		// Request next page.
 		r, err = drv.Files.
 			List().
-			Fields("nextPageToken, files(id, name)").
+			Fields("nextPageToken, files(id, name, parents)").
 			PageToken(r.NextPageToken).
 			PageSize(1000).
 			Do()
