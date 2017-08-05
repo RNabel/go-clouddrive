@@ -115,7 +115,7 @@ func GetDrive() *drive.Service {
 	return drv
 }
 
-func GetAllFilesFromDrive(drv *drive.Service, output chan types.CloudFile, wg sync.WaitGroup) {
+func GetAllFilesFromDrive(drv *drive.Service, output chan types.CloudFile, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Initial request.

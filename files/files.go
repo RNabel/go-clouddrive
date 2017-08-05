@@ -9,9 +9,10 @@ import (
 
 	"CloudDrive/types"
 	"CloudDrive/cloudconn"
+	"CloudDrive/database"
 )
 
-func AddFilesToDB(fileChan chan types.CloudFile, db *bolt.DB, drv *drive.Service, wg sync.WaitGroup) {
+func AddFilesToDB(fileChan chan types.CloudFile, db *bolt.DB, drv *drive.Service, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Get id of 'root'.
@@ -33,16 +34,19 @@ func AddFilesToDB(fileChan chan types.CloudFile, db *bolt.DB, drv *drive.Service
 		}
 	}
 
+	fmt.Println("Downloads complete.")
+	paths := getAllPathPairs(idChildrenMap, rootId, "/")
 
-	printAllPaths(idChildrenMap, rootId, "/")
-	// TODO If not present add it to its parent's id.
-	//serialised := cloudFile.ToBytes()
-	//path := "/hi"
-	//bucket := "paths"
-	//fmt.Println(count, "("+cloudFile.GoogleId+")")
-	//database.AddElementToBucket(db, []byte(bucket), []byte(path), serialised)
-	// TODO Add all elements to the database
-	//fmt.Println("All messages printed, total received: ", count)
+	bucket := "paths"
+	for i, p := range paths {
+		if i % 1000 == 0 { // Print progress.
+			fmt.Println("Added", i)
+		}
+
+		serialised := p.File.ToBytes()
+		database.AddElementToBucket(db, []byte(bucket), []byte(p.Path), serialised)
+	}
+	fmt.Println("Database operations finished.")
 }
 
 type PathIdPair struct {
@@ -50,7 +54,7 @@ type PathIdPair struct {
 	Path string
 }
 
-func printAllPaths(idChildrenMap map[string][]types.CloudFile, rootID string, currentPath string) []PathIdPair {
+func getAllPathPairs(idChildrenMap map[string][]types.CloudFile, rootID string, currentPath string) []PathIdPair {
 	var ret = []PathIdPair{}
 
 	for _, child := range idChildrenMap[rootID] {
@@ -58,10 +62,9 @@ func printAllPaths(idChildrenMap map[string][]types.CloudFile, rootID string, cu
 		newPath := path.Join(currentPath, child.Name)
 		newEntry := PathIdPair{child, newPath}
 		ret = append(ret, newEntry)
-		fmt.Println(newEntry.Path, "(" + newEntry.File.GoogleId + ")")
 
 		// Recursively add all other paths.
-		other := printAllPaths(idChildrenMap, child.GoogleId, newPath)
+		other := getAllPathPairs(idChildrenMap, child.GoogleId, newPath)
 		ret = append(ret, other...)
 	}
 

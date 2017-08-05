@@ -7,6 +7,7 @@ import (
 	"CloudDrive/database"
 	"CloudDrive/files"
 	"CloudDrive/types"
+	"fmt"
 )
 
 func main() {
@@ -26,10 +27,11 @@ func main() {
 		// Copy all file metadata from GDrive to key value store.
 		fileChan := make(chan types.CloudFile, 1000)
 		wg.Add(1)
-		go cloudconn.GetAllFilesFromDrive(drv, fileChan, wg)
+		go cloudconn.GetAllFilesFromDrive(drv, fileChan, &wg)
 		wg.Add(1)
-		go files.AddFilesToDB(fileChan, db, drv, wg)
+		go files.AddFilesToDB(fileChan, db, drv, &wg)
 	}
-
+	fmt.Println("main: Before the wait.")
 	wg.Wait()
+	fmt.Println("main: After the wait.")
 }
