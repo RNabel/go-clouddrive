@@ -3,38 +3,30 @@ package clouddrive
 import (
 	"github.com/boltdb/bolt"
 	"google.golang.org/api/drive/v3"
-	"bytes"
-	"encoding/gob"
-	"fmt"
-	"CloudDrive/types"
 )
 
-type CloudFile struct {
+type CDrive struct {
 	db *bolt.DB
-	drv drive.Service
+	drv *drive.Service
 }
 
-func NewCloudFileFromByte(in []byte) *CloudFile {
-	cf := CloudFile{}
-
-	buf := bytes.Buffer{}
-	buf.Write(in)
-
-	decoder := gob.NewDecoder(&buf)
-	err := decoder.Decode(&cf)
-	if err != nil {
-		fmt.Println("failed to gob Decode", err)
-	}
-
-	return &cf
+func (cd *CDrive) GetRootId() string {
+	f, _ := cd.drv.Files.Get("root").Do()
+	return f.Id
 }
 
-func (cf *CloudFile) ToBytes() []byte {
-	b := bytes.Buffer{}
-	e := gob.NewEncoder(&b)
-	err := e.Encode(cf)
-	if err != nil {
-		fmt.Println("failed to gob Encode", err)
-	}
-	return b.Bytes()
+func (cd *CDrive) DB() *bolt.DB {
+	return cd.db
+}
+
+func (cd *CDrive) Drive() *drive.Service {
+	return cd.drv
+}
+
+func NewCDrive(drv *drive.Service, db *bolt.DB) *CDrive {
+	cd := new(CDrive)
+	cd.drv = drv
+	cd.db = db
+
+	return cd
 }

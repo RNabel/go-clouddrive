@@ -11,7 +11,7 @@ var handlers = map[string]func(string){
 	"ls": func(path string) {
 		split := strings.Split(path, " ")
 		if len(split) == 2 {
-			fpath := split[0]
+			//fpath := split[1]
 
 		} else {
 			fmt.Println("wrong number of args. usage: ls <path>")

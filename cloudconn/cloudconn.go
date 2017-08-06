@@ -17,6 +17,8 @@ import (
 	"google.golang.org/api/drive/v3"
 	"sync"
 	"CloudDrive/types"
+	"CloudDrive/clouddrive"
+	"CloudDrive/files"
 )
 
 // getClient uses a Context and Config to retrieve a Token
@@ -115,11 +117,11 @@ func GetDrive() *drive.Service {
 	return drv
 }
 
-func GetAllFilesFromDrive(drv *drive.Service, output chan types.File, wg *sync.WaitGroup) {
+func GetAllFilesFromDrive(cd *clouddrive.CDrive, output chan types.File, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Initial request.
-	var r, err = drv.Files.List().
+	var r, err = cd.Drive().Files.List().
 		Fields("nextPageToken, files(id, name, parents)").
 		PageSize(1000).
 		Do()
@@ -135,13 +137,15 @@ func GetAllFilesFromDrive(drv *drive.Service, output chan types.File, wg *sync.W
 		fmt.Println("Fetched page:", counter, "files in page:", len(r.Files))
 		counter ++
 		for _, f := range r.Files {
-			output <- types.NewCloudFile(f) // TODO change to constructor.
+			fout := files.CloudFile{}
+			fout.CopyGoogleFile(f)
+			output <- &fout // TODO change to constructor.
 		}
 
 		cont = r.NextPageToken != "" || len(r.Files) == 0
 
 		// Request next page.
-		r, err = drv.Files.
+		r, err = cd.Drive().Files.
 			List().
 			Fields("nextPageToken, files(id, name, parents)").
 			PageToken(r.NextPageToken).
@@ -150,9 +154,4 @@ func GetAllFilesFromDrive(drv *drive.Service, output chan types.File, wg *sync.W
 	}
 
 	close(output)
-}
-
-func GetRootId(drv *drive.Service) string {
-	f, _ := drv.Files.Get("root").Do()
-	return f.Id
 }

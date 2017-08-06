@@ -4,19 +4,20 @@ import (
 	"google.golang.org/api/drive/v3"
 	"fmt"
 	"sync"
-	"github.com/boltdb/bolt"
 	"path"
 
 	"CloudDrive/types"
-	"CloudDrive/cloudconn"
 	"CloudDrive/database"
+	"bytes"
+	"encoding/gob"
+	"CloudDrive/clouddrive"
 )
 
-func AddFilesToDB(fileChan chan types.File, db *bolt.DB, drv *drive.Service, wg *sync.WaitGroup) {
+func AddFilesToDB(cd *clouddrive.CDrive, fileChan chan types.File, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Get id of 'root'.
-	rootId := cloudconn.GetRootId(drv)
+	rootId := cd.GetRootId()
 
 	// Create map from ID to children. To be populated when there is no match
 	//  in the previous map and
@@ -27,7 +28,7 @@ func AddFilesToDB(fileChan chan types.File, db *bolt.DB, drv *drive.Service, wg 
 	// Build up dependency tree.
 	for cloudFile := range fileChan {
 		count += 1
-		parents := cloudFile.Parents
+		parents := cloudFile.Parents()
 
 		for _, parentID := range parents {
 			idChildrenMap[parentID] = append(idChildrenMap[parentID], cloudFile)
@@ -39,12 +40,12 @@ func AddFilesToDB(fileChan chan types.File, db *bolt.DB, drv *drive.Service, wg 
 
 	bucket := "paths"
 	for i, p := range paths {
-		if i % 1000 == 0 { // Print progress.
+		if i%1000 == 0 { // Print progress.
 			fmt.Println("Added", i)
 		}
 
 		serialised := p.File.ToBytes()
-		database.AddElementToBucket(db, []byte(bucket), []byte(p.Path), serialised)
+		database.AddElementToBucket(cd.DB(), []byte(bucket), []byte(p.Path), serialised)
 	}
 	fmt.Println("Database operations finished.")
 }
@@ -59,12 +60,12 @@ func getAllPathPairs(idChildrenMap map[string][]types.File, rootID string, curre
 
 	for _, child := range idChildrenMap[rootID] {
 		// FIXME child should be File element.
-		newPath := path.Join(currentPath, child.Name)
+		newPath := path.Join(currentPath, child.Name())
 		newEntry := PathIdPair{child, newPath}
 		ret = append(ret, newEntry)
 
 		// Recursively add all other paths.
-		other := getAllPathPairs(idChildrenMap, child.GoogleId, newPath)
+		other := getAllPathPairs(idChildrenMap, child.Id(), newPath)
 		ret = append(ret, other...)
 	}
 
@@ -73,12 +74,46 @@ func getAllPathPairs(idChildrenMap map[string][]types.File, rootID string, curre
 
 // Export types.
 type CloudFile struct {
-	GoogleId string
-	Name string
-	Parents []string
+	googleId string
+	name     string
+	parents  []string
 }
 
+func (cf *CloudFile) ToBytes() []byte {
+	b := bytes.Buffer{}
+	e := gob.NewEncoder(&b)
+	err := e.Encode(cf)
+	if err != nil {
+		fmt.Println("failed to gob Encode", err)
+	}
+	return b.Bytes()
+}
 
-func NewCloudFile(file *drive.File) *CloudFile {
-	return &CloudFile{file.Id, file.Name, file.Parents}
+func (cf *CloudFile) CopyGoogleFile(file *drive.File) {
+	cf.googleId = file.Id
+	cf.name = file.Name
+	cf.parents = file.Parents
+}
+
+func (cf *CloudFile) FromBytes(in []byte) {
+	buf := bytes.Buffer{}
+	buf.Write(in)
+
+	decoder := gob.NewDecoder(&buf)
+	err := decoder.Decode(cf)
+	if err != nil {
+		fmt.Println("failed to gob Decode", err)
+	}
+}
+
+func (cf *CloudFile) Name() string {
+	return cf.name
+}
+
+func (cf *CloudFile) Parents() []string {
+	return cf.parents
+}
+
+func (cf *CloudFile) Id() string {
+	return cf.googleId
 }
