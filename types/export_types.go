@@ -1,11 +1,14 @@
 package types
 
-import "google.golang.org/api/drive/v3"
+import (
+	"CloudDrive/database"
+	"google.golang.org/api/drive/v3"
+)
 
 type FileState struct {
 	DownloadTimestamp int64
-	ExpiryDate int64
-	Filepath string
+	ExpiryDate        int64
+	Filepath          string
 	// TODO More file information.
 }
 
@@ -16,4 +19,12 @@ type File interface {
 	Parents() []string
 	Name() string
 	Id() string
+}
+
+type Drive interface {
+	Init()
+	Teardown()
+	GetRootId() string
+	DB() *database.CloudDB
+	Drive() *drive.Service
 }

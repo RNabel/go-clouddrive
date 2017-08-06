@@ -1,16 +1,20 @@
 package database
 
 import (
+	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
-	"fmt"
 )
 
 const PATHS_BUCKET_NAME = "paths"
 
 var TopLevelBuckets = [1]string{PATHS_BUCKET_NAME}
 
-func OpenDB() (*bolt.DB, error) {
+type CloudDB struct {
+	db *bolt.DB
+}
+
+func (cdb *CloudDB) OpenDB() error {
 	db, err := bolt.Open("files.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -27,16 +31,19 @@ func OpenDB() (*bolt.DB, error) {
 		return nil
 	})
 
-	return db, err
+	// Assign the db field.
+	cdb.db = db
+
+	return err
 }
 
-func CloseDB(db *bolt.DB) {
-	defer db.Close()
+func (cdb *CloudDB) CloseDB() {
+	defer cdb.db.Close()
 }
 
-func IsDbInitialised(db *bolt.DB) bool {
+func (cdb *CloudDB) IsInitialised() bool {
 	var isInitialised = false
-	db.View(func(tx *bolt.Tx) error {
+	cdb.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(PATHS_BUCKET_NAME))
 
 		// Go over each key in the bucket.
@@ -53,18 +60,31 @@ func IsDbInitialised(db *bolt.DB) bool {
 	return isInitialised
 }
 
-func AddElementToBucket(db *bolt.DB, bucket []byte, key []byte, value []byte) error {
-	return db.Update(func(tx *bolt.Tx) error {
+func (cdb *CloudDB) AddElementToBucket(bucket []byte, key []byte, value []byte) error {
+	return cdb.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		err := b.Put(key, value)
 		return err
 	})
 }
 
+func (cdb *CloudDB) GetElement(bucket string, key string) []byte {
+	var output = []byte{}
+
+	// Look up element.
+	cdb.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucket))
+		v := b.Get([]byte(key))
+		output = v
+		return nil
+	})
+
+	return output
+}
+
 // Require a set of transactions.
 
 // TODO Add/Update a file mapping to the db
 // TODO Remove a file mapping
-// TODO How are they retrieved?
 
 // TODO How are changes synced with the database.

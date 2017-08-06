@@ -1,42 +1,32 @@
 package main
 
 import (
-	"sync"
-	"os"
-	"CloudDrive/cloudconn"
-	"CloudDrive/database"
+	"CloudDrive/clouddrive"
+	"CloudDrive/cmd"
 	"CloudDrive/files"
 	"CloudDrive/types"
-	"CloudDrive/cmd"
-	"CloudDrive/clouddrive"
+	"sync"
+	"fmt"
 )
 
 func main() {
 	wg := sync.WaitGroup{}
 
-	// Initialise drive object.
-	drv := cloudconn.GetDrive()
-
-	// Initialise database.
-	db, err := database.OpenDB()
-	if err != nil {
-		os.Exit(1)
-	}
-	defer database.CloseDB(db)
-
-	cd := clouddrive.NewCDrive(drv, db)
-
-	if !database.IsDbInitialised(db) {
+	cd := clouddrive.NewCDrive()
+	db := cd.DB()
+	fmt.Println(db)
+	if !cd.DB().IsInitialised() {
 		// Copy all file metadata from GDrive to key value store.
 		fileChan := make(chan types.File, 1000)
 		wg.Add(1)
-		go cloudconn.GetAllFilesFromDrive(cd, fileChan, &wg)
+		go cd.FetchMetadataFromGoogleDrive(fileChan, &wg)
 		wg.Add(1)
 		go files.AddFilesToDB(cd, fileChan, &wg)
 	}
 	wg.Wait()
 
+	wg.Add(1)
 	// Start cmd.
-	go cmd.Start()
+	go cmd.Start(cd, &wg)
 	wg.Wait()
 }

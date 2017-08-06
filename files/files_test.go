@@ -1,8 +1,8 @@
 package files
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestCloudFileSerialisation(t *testing.T) {

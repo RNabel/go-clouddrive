@@ -1,19 +1,17 @@
 package files
 
 import (
-	"google.golang.org/api/drive/v3"
 	"fmt"
-	"sync"
+	"google.golang.org/api/drive/v3"
 	"path"
+	"sync"
 
 	"CloudDrive/types"
-	"CloudDrive/database"
 	"bytes"
 	"encoding/gob"
-	"CloudDrive/clouddrive"
 )
 
-func AddFilesToDB(cd *clouddrive.CDrive, fileChan chan types.File, wg *sync.WaitGroup) {
+func AddFilesToDB(cd types.Drive, fileChan chan types.File, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// Get id of 'root'.
@@ -45,7 +43,7 @@ func AddFilesToDB(cd *clouddrive.CDrive, fileChan chan types.File, wg *sync.Wait
 		}
 
 		serialised := p.File.ToBytes()
-		database.AddElementToBucket(cd.DB(), []byte(bucket), []byte(p.Path), serialised)
+		cd.DB().AddElementToBucket([]byte(bucket), []byte(p.Path), serialised)
 	}
 	fmt.Println("Database operations finished.")
 }
@@ -59,7 +57,6 @@ func getAllPathPairs(idChildrenMap map[string][]types.File, rootID string, curre
 	var ret = []PathIdPair{}
 
 	for _, child := range idChildrenMap[rootID] {
-		// FIXME child should be File element.
 		newPath := path.Join(currentPath, child.Name())
 		newEntry := PathIdPair{child, newPath}
 		ret = append(ret, newEntry)

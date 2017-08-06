@@ -1,12 +1,12 @@
 package main
 
 import (
-"fmt"
-"log"
-"strings"
-"time"
+	"fmt"
+	"log"
+	"strings"
+	"time"
 
-"github.com/boltdb/bolt"
+	"github.com/boltdb/bolt"
 )
 
 func check(err error) {
