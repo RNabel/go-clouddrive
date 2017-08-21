@@ -6,9 +6,9 @@ import (
 	"path"
 	"sync"
 
-	"CloudDrive/types"
 	"bytes"
 	"encoding/gob"
+	"go-clouddrive/types"
 )
 
 func AddFilesToDB(cd types.Drive, fileChan chan types.File, wg *sync.WaitGroup) {

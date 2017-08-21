@@ -1,7 +1,7 @@
 package types
 
 import (
-	"CloudDrive/database"
+	"go-clouddrive/database"
 	"google.golang.org/api/drive/v3"
 )
 

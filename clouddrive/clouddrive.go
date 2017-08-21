@@ -1,10 +1,10 @@
 package clouddrive
 
 import (
-	"CloudDrive/cloudconn"
-	"CloudDrive/database"
-	"CloudDrive/files"
-	"CloudDrive/types"
+	"go-clouddrive/cloudconn"
+	"go-clouddrive/database"
+	"go-clouddrive/files"
+	"go-clouddrive/types"
 	"fmt"
 	"google.golang.org/api/drive/v3"
 	"log"

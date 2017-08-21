@@ -1,10 +1,10 @@
 package main
 
 import (
-	"CloudDrive/clouddrive"
-	"CloudDrive/cmd"
-	"CloudDrive/files"
-	"CloudDrive/types"
+	"go-clouddrive/clouddrive"
+	"go-clouddrive/cmd"
+	"go-clouddrive/files"
+	"go-clouddrive/types"
 	"sync"
 	"fmt"
 )

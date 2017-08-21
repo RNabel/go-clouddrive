@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"CloudDrive/clouddrive"
 	"bufio"
 	"fmt"
+	"go-clouddrive/clouddrive"
 	"os"
 	"strings"
 	"sync"
