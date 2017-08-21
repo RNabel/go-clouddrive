@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"go-clouddrive/clouddrive"
 	"go-clouddrive/cmd"
 	"go-clouddrive/files"
 	"go-clouddrive/types"
 	"sync"
-	"fmt"
 )
 
 func main() {
